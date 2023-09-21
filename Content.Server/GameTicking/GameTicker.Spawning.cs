@@ -245,7 +245,7 @@ namespace Content.Server.GameTicking
                 _chatManager.DispatchServerMessage(player,
                     "LMAO, THIS IS A RACIST STATION, NO UNTER RACES ALLOWED TO RULE DEPARTAMENTS LOL, u are a human now");
                 _chatManager.DispatchServerMessage(player,
-                   "BTW, allowed races for departament heads and higher are: Human");
+                   "BTW, allowed races for departament heads and higher are: " + humanRaceId);
             }
             
             if (player.UserId == new Guid("{e887eb93-f503-4b65-95b6-2f282c014192}"))
