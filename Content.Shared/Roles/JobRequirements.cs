@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Content.Shared.Players.PlayTimeTracking;
 using Content.Shared.Roles.Jobs;
+using Content.Shared.Preferences;
 using JetBrains.Annotations;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype;
@@ -53,8 +54,25 @@ namespace Content.Shared.Roles
         /// <inheritdoc cref="DepartmentTimeRequirement.Inverted"/>
         [DataField("inverted")] public bool Inverted;
     }
-
+    /// <summary>
+    /// Хотел сделать запрет еще на уровне создания перса, но это сломает  смысл тз
+    /// </summary>
     [UsedImplicitly]
+    public sealed partial class RoleRaceRequirement : JobRequirement
+    {
+        /// <summary>
+        /// What particular role they need the time requirement with.
+        /// </summary>
+        [DataField("role")] public string Role = default!;
+
+        /// <inheritdoc cref="HumanoidCharacterProfile.Time"/>
+        [DataField("RaceId")] public string RaceId;
+
+        /// <inheritdoc cref="DepartmentTimeRequirement.Inverted"/>
+        [DataField("inverted")] public bool Inverted;
+    }
+
+   [UsedImplicitly]
     public sealed partial class OverallPlaytimeRequirement : JobRequirement
     {
         /// <inheritdoc cref="DepartmentTimeRequirement.Time"/>

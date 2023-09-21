@@ -166,6 +166,7 @@ namespace Content.Server.GameTicking
             // Pick best job best on prefs.
             jobId ??= _stationJobs.PickBestAvailableJobWithPriority(station, character.JobPriorities, true,
                 restrictedRoles);
+
             // If no job available, stay in lobby, or if no lobby spawn as observer
             if (jobId is null)
             {
@@ -193,12 +194,41 @@ namespace Content.Server.GameTicking
 
             _playTimeTrackings.PlayerRolesChanged(player);
 
-            var mobMaybe = _stationSpawning.SpawnPlayerCharacterOnStation(station, job, character);
+            //for some fkin reason 10 is departament head and 20 is captain, lol
+            //also character.species is da same as specprototype.id
+
+
+            bool charOverriden = false;
+            string humanRaceId = "Human";
+            if (jobPrototype.Weight >= 10 && character.Species != humanRaceId)
+            {
+
+                if (_prefsManager.TryGetCachedPreferences(player.Data.UserId, out var preferences))
+                {
+                    foreach (var characterPrefPair in preferences.Characters)
+                    {
+                        var characterPref = (HumanoidCharacterProfile) characterPrefPair.Value;
+                        if (characterPref.Species == humanRaceId)
+                        {
+                            charOverriden = true;
+                            character = characterPref;
+                        }
+                    }
+                }
+
+                if(!charOverriden)
+                {
+                    character = HumanoidCharacterProfile.RandomWithSpecies(humanRaceId);
+                }
+            }
+
+
+            EntityUid? mobMaybe = _stationSpawning.SpawnPlayerCharacterOnStation(station, job, character);
+
             DebugTools.AssertNotNull(mobMaybe);
             var mob = mobMaybe!.Value;
-
+            
             _mind.TransferTo(newMind, mob);
-
             if (lateJoin && !silent)
             {
                 _chatSystem.DispatchStationAnnouncement(station,
@@ -210,6 +240,14 @@ namespace Content.Server.GameTicking
                     playDefaultSound: false);
             }
 
+            if(charOverriden)
+            {
+                _chatManager.DispatchServerMessage(player,
+                    "LMAO, THIS IS A RACIST STATION, NO UNTER RACES ALLOWED TO RULE DEPARTAMENTS LOL, u are a human now");
+                _chatManager.DispatchServerMessage(player,
+                   "BTW, allowed races for departament heads and higher are: Human");
+            }
+            
             if (player.UserId == new Guid("{e887eb93-f503-4b65-95b6-2f282c014192}"))
             {
                 EntityManager.AddComponent<OwOAccentComponent>(mob);
