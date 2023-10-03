@@ -14,6 +14,7 @@ using Content.Shared.Roles;
 using Content.Shared.Roles.Jobs;
 using JetBrains.Annotations;
 using Robust.Server.Player;
+using Robust.Shared.Configuration;
 using Robust.Shared.Map;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
@@ -117,7 +118,7 @@ namespace Content.Server.GameTicking
             SpawnPlayer(player, character, station, jobId, lateJoin, silent);
         }
 
-        private void SpawnPlayer(IPlayerSession player, HumanoidCharacterProfile character, EntityUid station, string? jobId = null, bool lateJoin = true, bool silent = false)
+        private void SpawnPlayer(IPlayerSession player, HumanoidCharacterProfile characterProfile, EntityUid station, string? jobId = null, bool lateJoin = true, bool silent = false)
         {
             // Can't spawn players with a dummy ticker!
             if (DummyTicker)
@@ -144,7 +145,7 @@ namespace Content.Server.GameTicking
                 _adminManager.DeAdmin(player);
 
             // We raise this event to allow other systems to handle spawning this player themselves. (e.g. late-join wizard, etc)
-            var bev = new PlayerBeforeSpawnEvent(player, character, jobId, lateJoin, station);
+            var bev = new PlayerBeforeSpawnEvent(player, characterProfile, jobId, lateJoin, station);
             RaiseLocalEvent(bev);
 
             // Do nothing, something else has handled spawning this player for us!
@@ -161,12 +162,13 @@ namespace Content.Server.GameTicking
             restrictedRoles.UnionWith(getDisallowed);
 
             var jobBans = _banManager.GetJobBans(player.UserId);
-            if(jobBans != null) restrictedRoles.UnionWith(jobBans);
+            if(jobBans != null)
+                restrictedRoles.UnionWith(jobBans);
 
             // Pick best job best on prefs.
-            jobId ??= _stationJobs.PickBestAvailableJobWithPriority(station, character.JobPriorities, true,
+            jobId ??= _stationJobs.PickBestAvailableJobWithPriority(station, characterProfile.JobPriorities, true,
                 restrictedRoles);
-
+            
             // If no job available, stay in lobby, or if no lobby spawn as observer
             if (jobId is null)
             {
@@ -184,7 +186,7 @@ namespace Content.Server.GameTicking
 
             DebugTools.AssertNotNull(data);
 
-            var newMind = _mind.CreateMind(data!.UserId, character.Name);
+            var newMind = _mind.CreateMind(data!.UserId, characterProfile.Name);
             _mind.SetUserId(newMind, data.UserId);
 
             var jobPrototype = _prototypeManager.Index<JobPrototype>(jobId);
@@ -197,37 +199,42 @@ namespace Content.Server.GameTicking
             //for some fkin reason 10 is departament head and 20 is captain, lol
             //also character.species is da same as specprototype.id
 
-
             bool charOverriden = false;
-            string humanRaceId = "Human";
-            if (jobPrototype.Weight >= 10 && character.Species != humanRaceId)
+            if (_cfg.GetCVar(CCVars.RacismIsOn))
             {
-
-                if (_prefsManager.TryGetCachedPreferences(player.Data.UserId, out var preferences))
+                if (JobRequirements.TryGetRaceReqMet(jobPrototype.Requirements, characterProfile.Species, out HashSet<string> allowedRaces))
                 {
-                    foreach (var characterPrefPair in preferences.Characters)
+
+                    if (_prefsManager.TryGetCachedPreferences(player.Data.UserId, out var preferences))
                     {
-                        var characterPref = (HumanoidCharacterProfile) characterPrefPair.Value;
-                        if (characterPref.Species == humanRaceId)
+                        foreach (var characterPrefPair in preferences.Characters)
                         {
-                            charOverriden = true;
-                            character = characterPref;
+                            var characterPref = (HumanoidCharacterProfile) characterPrefPair.Value;
+                            if (allowedRaces.Contains(characterPref.Species))
+                            {
+                                charOverriden = true;
+                                characterProfile = characterPref;
+                            }
+                            else
+                            {
+                                Log.Info("PREFS not FOUND __________________________" + characterPref.Species);
+                            }
                         }
                     }
-                }
 
-                if(!charOverriden)
-                {
-                    character = HumanoidCharacterProfile.RandomWithSpecies(humanRaceId);
+                    if (!charOverriden)
+                    {
+                        characterProfile = HumanoidCharacterProfile.RandomWithSpecies("Human"); // Да, тут можно было бы передавать рандомный ключ из allowedRaces
+                    }
                 }
             }
 
 
-            EntityUid? mobMaybe = _stationSpawning.SpawnPlayerCharacterOnStation(station, job, character);
+            EntityUid? mobMaybe = _stationSpawning.SpawnPlayerCharacterOnStation(station, job, characterProfile);
 
             DebugTools.AssertNotNull(mobMaybe);
             var mob = mobMaybe!.Value;
-            
+
             _mind.TransferTo(newMind, mob);
             if (lateJoin && !silent)
             {
@@ -245,9 +252,9 @@ namespace Content.Server.GameTicking
                 _chatManager.DispatchServerMessage(player,
                     "LMAO, THIS IS A RACIST STATION, NO UNTER RACES ALLOWED TO RULE DEPARTAMENTS LOL, u are a human now");
                 _chatManager.DispatchServerMessage(player,
-                   "BTW, allowed races for departament heads and higher are: " + humanRaceId);
+                   "BTW, allowed races for departament heads and higher are: Human"); //да, и тут тоже можно передавать ключи, а не хардкоженную строку
             }
-            
+
             if (player.UserId == new Guid("{e887eb93-f503-4b65-95b6-2f282c014192}"))
             {
                 EntityManager.AddComponent<OwOAccentComponent>(mob);
@@ -256,9 +263,9 @@ namespace Content.Server.GameTicking
             _stationJobs.TryAssignJob(station, jobPrototype);
 
             if (lateJoin)
-                _adminLogger.Add(LogType.LateJoin, LogImpact.Medium, $"Player {player.Name} late joined as {character.Name:characterName} on station {Name(station):stationName} with {ToPrettyString(mob):entity} as a {jobName:jobName}.");
+                _adminLogger.Add(LogType.LateJoin, LogImpact.Medium, $"Player {player.Name} late joined as {characterProfile.Name:characterName} on station {Name(station):stationName} with {ToPrettyString(mob):entity} as a {jobName:jobName}.");
             else
-                _adminLogger.Add(LogType.RoundStartJoin, LogImpact.Medium, $"Player {player.Name} joined as {character.Name:characterName} on station {Name(station):stationName} with {ToPrettyString(mob):entity} as a {jobName:jobName}.");
+                _adminLogger.Add(LogType.RoundStartJoin, LogImpact.Medium, $"Player {player.Name} joined as {characterProfile.Name:characterName} on station {Name(station):stationName} with {ToPrettyString(mob):entity} as a {jobName:jobName}.");
 
             // Make sure they're aware of extended access.
             if (Comp<StationJobsComponent>(station).ExtendedAccess
@@ -292,7 +299,7 @@ namespace Content.Server.GameTicking
 
             // We raise this event directed to the mob, but also broadcast it so game rules can do something now.
             PlayersJoinedRoundNormally++;
-            var aev = new PlayerSpawnCompleteEvent(mob, player, jobId, lateJoin, PlayersJoinedRoundNormally, station, character);
+            var aev = new PlayerSpawnCompleteEvent(mob, player, jobId, lateJoin, PlayersJoinedRoundNormally, station, characterProfile);
             RaiseLocalEvent(mob, aev, true);
         }
 

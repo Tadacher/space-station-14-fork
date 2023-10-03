@@ -4,6 +4,7 @@ using Content.Shared.GameTicking;
 using Content.Shared.GameWindow;
 using Content.Shared.Players;
 using Content.Shared.Preferences;
+using Content.Shared.Roles;
 using JetBrains.Annotations;
 using Robust.Server.Player;
 using Robust.Shared.Enums;

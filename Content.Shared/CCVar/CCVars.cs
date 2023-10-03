@@ -29,6 +29,9 @@ namespace Content.Shared.CCVar
         public static readonly CVarDef<string> RulesHeader =
             CVarDef.Create("server.rules_header", "ui-rules-header", CVar.REPLICATED | CVar.SERVER);
 
+        public static readonly CVarDef<bool> RacismIsOn =
+            CVarDef.Create("server.rules_header", true, CVar.REPLICATED | CVar.SERVER);
+
         /*
          * Ambience
          */

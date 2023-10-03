@@ -13,7 +13,7 @@ namespace Content.Shared.Roles
     /// Abstract class for playtime and other requirements for role gates.
     /// </summary>
     [ImplicitDataDefinitionForInheritors]
-    public abstract partial class JobRequirement{}
+    public abstract partial class JobRequirement { }
 
     [UsedImplicitly]
     public sealed partial class DepartmentTimeRequirement : JobRequirement
@@ -60,10 +60,6 @@ namespace Content.Shared.Roles
     [UsedImplicitly]
     public sealed partial class RoleRaceRequirement : JobRequirement
     {
-        /// <summary>
-        /// What particular role they need the time requirement with.
-        /// </summary>
-        [DataField("role")] public string Role = default!;
 
         /// <inheritdoc cref="HumanoidCharacterProfile.Time"/>
         [DataField("RaceId")] public string RaceId;
@@ -72,7 +68,7 @@ namespace Content.Shared.Roles
         [DataField("inverted")] public bool Inverted;
     }
 
-   [UsedImplicitly]
+    [UsedImplicitly]
     public sealed partial class OverallPlaytimeRequirement : JobRequirement
     {
         /// <inheritdoc cref="DepartmentTimeRequirement.Time"/>
@@ -97,7 +93,7 @@ namespace Content.Shared.Roles
 
             foreach (var requirement in job.Requirements)
             {
-                if (!TryRequirementMet(requirement, playTimes, out reason, entManager, prototypes))
+                if (!TryJobPlaytimeRequirementMet(requirement, playTimes, out reason, entManager, prototypes))
                     return false;
             }
 
@@ -107,7 +103,7 @@ namespace Content.Shared.Roles
         /// <summary>
         /// Returns a string with the reason why a particular requirement may not be met.
         /// </summary>
-        public static bool TryRequirementMet(
+        public static bool TryJobPlaytimeRequirementMet(
             JobRequirement requirement,
             Dictionary<string, TimeSpan> playTimes,
             [NotNullWhen(false)] out FormattedMessage? reason,
@@ -233,6 +229,33 @@ namespace Content.Shared.Roles
                 default:
                     throw new NotImplementedException();
             }
+        }
+      
+        // было-бы заебись, конечно, организовать проверку в методе выше и не перебирать хешсет по новой,
+        // но у нас по ходу задачи необходимо узнать о расе перса для начала, что происходит уже в методе, который спавнит
+        
+        public static bool TryGetRaceReqMet(HashSet<JobRequirement>? requirements, string raceId, out HashSet<string> allowedRaces)
+        {
+            allowedRaces = new();
+            if (requirements == null)
+                return true;
+
+            foreach (var req in requirements)
+            {
+                switch(req)
+                {
+                case RoleRaceRequirement raceReq:
+                        allowedRaces.Add(raceReq.RaceId);
+                        if (!Equals(raceReq.RaceId, raceId))
+                        {
+                            return false;
+                        }
+                        return true;
+                default:
+                        break;
+                }
+            }
+            return true;
         }
     }
 }

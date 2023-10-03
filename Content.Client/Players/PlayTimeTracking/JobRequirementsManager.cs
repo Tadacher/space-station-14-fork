@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Content.Shared.CCVar;
@@ -22,7 +22,6 @@ public sealed class JobRequirementsManager
     [Dependency] private readonly IEntityManager _entManager = default!;
     [Dependency] private readonly IPlayerManager _playerManager = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
-
     private readonly Dictionary<string, TimeSpan> _roles = new();
     private readonly List<string> _roleBans = new();
 
@@ -97,7 +96,6 @@ public sealed class JobRequirementsManager
         }
 
         var player = _playerManager.LocalPlayer?.Session;
-
         if (player == null)
             return true;
 
@@ -105,7 +103,8 @@ public sealed class JobRequirementsManager
 
         foreach (var requirement in job.Requirements)
         {
-            if (JobRequirements.TryRequirementMet(requirement, _roles, out var jobReason, _entManager, _prototypes))
+            
+            if (JobRequirements.TryJobPlaytimeRequirementMet(requirement, _roles, out var jobReason, _entManager, _prototypes))
                 continue;
 
             reasonBuilder.AppendLine(jobReason.ToMarkup());

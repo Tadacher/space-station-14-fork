@@ -182,7 +182,7 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
             {
                 foreach (var requirement in job.Requirements)
                 {
-                    if (JobRequirements.TryRequirementMet(requirement, playTimes, out _, EntityManager, _prototypes))
+                    if (JobRequirements.TryJobPlaytimeRequirementMet(requirement, playTimes, out _, EntityManager, _prototypes))
                         continue;
 
                     goto NoRole;
@@ -220,7 +220,7 @@ public sealed class PlayTimeTrackingSystem : EntitySystem
 
             foreach (var requirement in jobber.Requirements)
             {
-                if (JobRequirements.TryRequirementMet(requirement, playTimes, out _, EntityManager, _prototypes))
+                if (JobRequirements.TryJobPlaytimeRequirementMet(requirement, playTimes, out _, EntityManager, _prototypes))
                     continue;
 
                 jobs.RemoveSwap(i);

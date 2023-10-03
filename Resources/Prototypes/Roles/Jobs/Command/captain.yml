@@ -16,6 +16,8 @@
     - !type:DepartmentTimeRequirement
       department: Command
       time: 54000 # 15 hours
+    - !type:RoleRaceRequirement
+      raceId: Human
   weight: 20
   startingGear: CaptainGear
   icon: "JobIconCaptain"

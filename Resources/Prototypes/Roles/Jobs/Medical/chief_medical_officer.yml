@@ -16,7 +16,9 @@
       department: Medical
       time: 36000 #10 hrs
     - !type:OverallPlaytimeRequirement
-      time: 144000 #40 hrs            
+      time: 144000 #40 hrs        
+    - !type:RoleRaceRequirement
+      raceId: Human    
   weight: 10
   startingGear: CMOGear
   icon: "JobIconChiefMedicalOfficer"
